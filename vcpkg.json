@@ -1,0 +1,16 @@
+{
+  "name": "quantum-orbital-model",
+  "version": "0.1.0",
+  "description": "Visualizador 2D de orbitais quânticos (Bohr + Schrödinger)",
+  "dependencies": [
+    "glew",
+    "glfw3",
+    "glm",
+    {
+      "name": "imgui",
+      "features": ["glfw-binding", "opengl3-binding"]
+    },
+    "nlohmann-json",
+    "fmt"
+  ]
+}

@@ -1,0 +1,36 @@
+# Build artifacts
+build/
+out/
+cmake-build-*/
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.o
+*.a
+
+# Vcpkg
+vcpkg_installed/
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+*.swp
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CMake generated
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+Makefile
+
+# Arquivos de debug
+log.txt
+saida.txt
+*.tar.gz
+*.zip

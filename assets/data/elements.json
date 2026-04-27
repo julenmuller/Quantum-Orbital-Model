@@ -1,0 +1,50 @@
+{
+  "elements": [
+    {
+      "Z": 1,
+      "symbol": "H",
+      "name": "Hidrogênio",
+      "configuration": [
+        { "n": 1, "l": 0, "electrons": 1 }
+      ]
+    },
+    {
+      "Z": 2,
+      "symbol": "He",
+      "name": "Hélio",
+      "configuration": [
+        { "n": 1, "l": 0, "electrons": 2 }
+      ]
+    },
+    {
+      "Z": 6,
+      "symbol": "C",
+      "name": "Carbono",
+      "configuration": [
+        { "n": 1, "l": 0, "electrons": 2 },
+        { "n": 2, "l": 0, "electrons": 2 },
+        { "n": 2, "l": 1, "electrons": 2 }
+      ]
+    },
+    {
+      "Z": 7,
+      "symbol": "N",
+      "name": "Nitrogênio",
+      "configuration": [
+        { "n": 1, "l": 0, "electrons": 2 },
+        { "n": 2, "l": 0, "electrons": 2 },
+        { "n": 2, "l": 1, "electrons": 3 }
+      ]
+    },
+    {
+      "Z": 8,
+      "symbol": "O",
+      "name": "Oxigênio",
+      "configuration": [
+        { "n": 1, "l": 0, "electrons": 2 },
+        { "n": 2, "l": 0, "electrons": 2 },
+        { "n": 2, "l": 1, "electrons": 4 }
+      ]
+    }
+  ]
+}

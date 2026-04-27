@@ -1,0 +1,12 @@
+{
+  "1s": "Orbital de menor energia. Forma esférica simétrica em torno do núcleo, com densidade máxima de probabilidade próxima ao próprio núcleo (raio de Bohr ≈ 1 a₀). Comporta no máximo 2 elétrons. Em todos os átomos da tabela periódica, este é sempre o primeiro orbital a ser preenchido.",
+  "2s": "Orbital esférico do segundo nível. Tem um nó radial (uma esfera onde a probabilidade é zero), o que cria uma 'casca' interna de alta probabilidade e outra externa. Comporta 2 elétrons. Sua energia é mais alta que a do 1s, mas menor que a dos 2p.",
+  "2p": "Os orbitais p têm formato de halter (dois lóbulos). Existem três orientações (px, py, pz), uma para cada eixo. Cada um comporta 2 elétrons, totalizando 6 elétrons no subnível 2p. Os orbitais p são os responsáveis pela maioria das ligações químicas covalentes em moléculas orgânicas.",
+  "3s": "Orbital esférico do terceiro nível. Possui dois nós radiais, criando padrão de cascas concêntricas. Tem energia maior que 2p mas menor que 3p.",
+  "3p": "Orbitais p do terceiro nível. Formato de halter mais expandido espacialmente que os 2p. Cada um dos três (3px, 3py, 3pz) comporta 2 elétrons.",
+  "3d": "Orbitais d são mais complexos: quatro deles têm formato de 'trevo' (quatro lóbulos no plano), e o quinto (dz²) tem formato de halter com um anel ao redor. Há cinco orbitais d, comportando 10 elétrons no total. Aparecem na configuração eletrônica a partir do quarto período da tabela periódica.",
+  "s": "Orbital tipo s — esfericamente simétrico. Independe da direção, depende só do raio.",
+  "p": "Orbital tipo p — formato de halter, com um nó angular passando pelo núcleo.",
+  "d": "Orbital tipo d — formas mais complexas, com dois nós angulares.",
+  "f": "Orbital tipo f — formas ainda mais complexas, com três nós angulares."
+}
