@@ -1,8 +1,11 @@
 # Quantum Orbital Model — Visualizador 2D
 
-Visualizador interativo 2D de orbitais atômicos com **física quântica real** (equação de Schrödinger), inspirado no projeto [kavan010/Atoms](https://github.com/kavan010/Atoms) e completamente refatorado em uma arquitetura profissional por camadas.
+Visualizador interativo 2D de orbitais atômicos com **física quântica real** (equação de Schrödinger), inspirado no projeto
+(https://github.com/kavan010/Atoms) e completamente refatorado em uma arquitetura profissional por camadas.
 
-![Screenshot](docs/screenshot.png) *(adicione um screenshot depois de rodar)*
+<img width="1281" height="751" alt="Captura de tela 2026-04-27 171001" src="https://github.com/user-attachments/assets/66a5adfc-ddfa-4b42-8a87-8d81e426c676" />
+
+[versão 2D]
 
 ## 🎯 O que ele faz
 
