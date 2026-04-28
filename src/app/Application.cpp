@@ -1,15 +1,13 @@
-// ============================================================
-// Application.cpp - VERSÃO COM DIAGNÓSTICO
-// ============================================================
-
 #include "app/Application.hpp"
 #include "app/Config.hpp"
+#include "app/ViewMode.hpp"
 #include "physics/BohrModel.hpp"
 #include "platform/Input.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <fmt/format.h>
+#include <imgui.h>
 
 #include <iostream>
 #include <set>
@@ -30,7 +28,7 @@ namespace app {
             return palette[l];
         }
 
-    } // namespace anônimo
+    }
 
     Application::Application() = default;
 
@@ -42,7 +40,6 @@ namespace app {
         std::cout << "[1] Iniciando..." << std::endl;
         std::cout.flush();
 
-        // ----- Janela + OpenGL -----
         try {
             std::cout << "[2] Criando janela..." << std::endl;
             std::cout.flush();
@@ -71,58 +68,35 @@ namespace app {
         std::cout << "[5] ImGui ok!" << std::endl;
         std::cout.flush();
 
-        std::cout << "[6] Carregando elementos de " << config::elementsPath() << "..." << std::endl;
+        std::cout << "[6] Carregando elementos..." << std::endl;
         std::cout.flush();
         if (!elementDb_.loadFromFile(config::elementsPath())) {
             std::cerr << "Falha ao carregar elements.json\n";
-            std::cerr.flush();
             return 3;
         }
-        std::cout << "[7] Elementos carregados!" << std::endl;
-        std::cout.flush();
 
-        std::cout << "[8] Carregando descricoes..." << std::endl;
+        std::cout << "[7] Carregando descricoes..." << std::endl;
         std::cout.flush();
         if (!infoPanel_.loadDescriptions(config::descriptionsPath())) {
             std::cerr << "Aviso: descricoes nao carregadas\n";
-            std::cerr.flush();
         }
-        std::cout << "[9] Descricoes ok" << std::endl;
-        std::cout.flush();
 
-        std::cout << "[10] Inicializando ParticleRenderer (shaders em " << config::shadersDir() << ")..." << std::endl;
+        std::cout << "[8] Inicializando renderers 2D..." << std::endl;
         std::cout.flush();
-        if (!particleRenderer_.initialize(config::shadersDir())) {
-            std::cerr << "Falha no ParticleRenderer\n";
-            std::cerr.flush();
-            return 4;
-        }
-        std::cout << "[11] ParticleRenderer ok" << std::endl;
-        std::cout.flush();
+        if (!particleRenderer_.initialize(config::shadersDir())) return 4;
+        if (!orbitRenderer_.initialize(config::shadersDir())) return 5;
 
-        std::cout << "[12] Inicializando OrbitRenderer..." << std::endl;
-        std::cout.flush();
-        if (!orbitRenderer_.initialize(config::shadersDir())) {
-            std::cerr << "Falha no OrbitRenderer\n";
-            std::cerr.flush();
-            return 5;
-        }
-        std::cout << "[13] OrbitRenderer ok" << std::endl;
-        std::cout.flush();
-
-        std::cout << "[14] Configurando camera..." << std::endl;
+        std::cout << "[9] Configurando camera..." << std::endl;
         std::cout.flush();
         camera_.updateAspect(window_->aspectRatio());
-        std::cout << "[15] Camera ok" << std::endl;
-        std::cout.flush();
 
-        std::cout << "[16] Gerando orbitais iniciais (Hidrogenio)..." << std::endl;
+        std::cout << "[10] Gerando orbitais iniciais..." << std::endl;
         std::cout.flush();
         controlState_.selectedSymbol = "H";
         controlState_.particlesPerOrbital = config::DEFAULT_PARTICLES_PER_ORBITAL;
         controlState_.needsRegeneration = true;
         regenerateOrbitalsIfNeeded();
-        std::cout << "[17] Tudo pronto! Entrando no loop..." << std::endl;
+        std::cout << "[11] Tudo pronto!" << std::endl;
         std::cout.flush();
 
         return 0;
@@ -145,9 +119,6 @@ namespace app {
         std::cout.flush();
 
         currentOrbitals_ = currentElement_->createOrbitals();
-        std::cout << "  [regen] " << currentOrbitals_.size() << " orbitais criados" << std::endl;
-        std::cout.flush();
-
         assignColorsToOrbitals();
 
         int maxN = 1;
@@ -157,15 +128,11 @@ namespace app {
         const double samplingRadius = std::max(15.0,
             2.0 * physics::BohrModel::shellRadius(maxN, currentElement_->atomicNumber()) + 5.0);
 
-        std::cout << "  [regen] Amostrando pontos..." << std::endl;
-        std::cout.flush();
         for (auto& orb : currentOrbitals_) {
             orb->generatePoints(sampler_,
                 controlState_.particlesPerOrbital,
                 samplingRadius);
         }
-        std::cout << "  [regen] Upload pra GPU..." << std::endl;
-        std::cout.flush();
 
         particleRenderer_.uploadOrbitals(currentOrbitals_);
 
@@ -181,8 +148,6 @@ namespace app {
         orbitRenderer_.buildShells(radii);
 
         camera_.setWorldHeight(static_cast<float>(samplingRadius * 2.2));
-        std::cout << "  [regen] OK" << std::endl;
-        std::cout.flush();
     }
 
     void Application::update() {
@@ -199,14 +164,36 @@ namespace app {
         glClearColor(0.02f, 0.02f, 0.06f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        if (controlState_.showShells) {
-            orbitRenderer_.render(camera_);
+        // Renderiza viewport segundo o modo atual
+
+        if (controlState_.viewMode == ViewMode::View2D) {
+            // Modo 2D: nuvem + aneis de Bohr planos
+            if (controlState_.showShells) {
+                orbitRenderer_.render(camera_);
+            }
+            particleRenderer_.render(camera_, controlState_.pointSize);
         }
-        particleRenderer_.render(camera_, controlState_.pointSize);
+        else {
+            // Modo 3D
+        }
 
         uiManager_->beginFrame();
         controlPanel_.render(controlState_, elementDb_);
         infoPanel_.render(currentElement_, currentOrbitals_);
+
+        if (controlState_.viewMode == ViewMode::View3D) {
+            ImGui::SetNextWindowPos(
+                ImVec2(window_->width() / 2.0f - 200, window_->height() / 2.0f - 50),
+                ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(400, 100), ImGuiCond_Always);
+            ImGui::Begin("3D em construcao", nullptr,
+                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoCollapse);
+            ImGui::TextWrapped("Modo 3D em desenvolvimento.");
+            ImGui::TextWrapped("Volte para a aba 2D para ver os orbitais.");
+            ImGui::End();
+        }
+
         uiManager_->endFrame();
     }
 
@@ -219,4 +206,4 @@ namespace app {
         }
     }
 
-} // namespace app
+}
