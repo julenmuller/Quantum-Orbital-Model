@@ -1,11 +1,7 @@
-// ============================================================
-// Window.cpp - VERSÃO COM FALLBACK
-
 #include "platform/Window.hpp"
-
+#include "platform/Input.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <stdexcept>
 
@@ -33,6 +29,29 @@ namespace platform {
             }
             glfwWindowHint(GLFW_SAMPLES, 4);
             return glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
+        }
+
+        void mouseButtonCallback(GLFWwindow* /*w*/, int button, int action, int /*mods*/) {
+            auto& m = Input::mouse();
+            const bool pressed = (action == GLFW_PRESS);
+            switch (button) {
+            case GLFW_MOUSE_BUTTON_LEFT:   m.leftPressed = pressed; break;
+            case GLFW_MOUSE_BUTTON_RIGHT:  m.rightPressed = pressed; break;
+            case GLFW_MOUSE_BUTTON_MIDDLE: m.middlePressed = pressed; break;
+            default: break;
+            }
+        }
+
+        void cursorPosCallback(GLFWwindow* /*w*/, double xpos, double ypos) {
+            auto& m = Input::mouse();
+            m.deltaX += (xpos - m.x);
+            m.deltaY += (ypos - m.y);
+            m.x = xpos;
+            m.y = ypos;
+        }
+
+        void scrollCallback(GLFWwindow* /*w*/, double /*xoffset*/, double yoffset) {
+            Input::mouse().scrollDelta += yoffset;
         }
     }
 
@@ -84,6 +103,10 @@ namespace platform {
         glfwMakeContextCurrent(handle_);
         glfwSetWindowUserPointer(handle_, this);
         glfwSetFramebufferSizeCallback(handle_, framebufferSizeCallback);
+        glfwSetMouseButtonCallback(handle_, mouseButtonCallback);
+        glfwSetCursorPosCallback(handle_, cursorPosCallback);
+        glfwSetScrollCallback(handle_, scrollCallback);
+
         glfwSwapInterval(1);
 
         std::cout << "  [Window] Inicializando GLEW..." << std::endl;
@@ -101,7 +124,7 @@ namespace platform {
             throw std::runtime_error("Falha ao inicializar GLEW");
         }
 
-        glGetError(); // limpa erro inicial inocuo
+        glGetError();
 
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -109,12 +132,10 @@ namespace platform {
         const GLubyte* vendor = glGetString(GL_VENDOR);
         const GLubyte* renderer = glGetString(GL_RENDERER);
         const GLubyte* version = glGetString(GL_VERSION);
-        const GLubyte* glsl = glGetString(GL_SHADING_LANGUAGE_VERSION);
 
         std::cout << "  [Window] OpenGL Vendor:   " << (vendor ? reinterpret_cast<const char*>(vendor) : "?") << std::endl;
         std::cout << "  [Window] OpenGL Renderer: " << (renderer ? reinterpret_cast<const char*>(renderer) : "?") << std::endl;
         std::cout << "  [Window] OpenGL Version:  " << (version ? reinterpret_cast<const char*>(version) : "?") << std::endl;
-        std::cout << "  [Window] GLSL Version:    " << (glsl ? reinterpret_cast<const char*>(glsl) : "?") << std::endl;
         std::cout.flush();
 
         ++g_windowCount;
@@ -154,4 +175,4 @@ namespace platform {
         glViewport(0, 0, width, height);
     }
 
-} // namespace platform
+}

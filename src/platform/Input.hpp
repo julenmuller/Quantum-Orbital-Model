@@ -1,19 +1,25 @@
-// ============================================================
-// Input.hpp
-// ------------------------------------------------------------
-// Helpers de input — checagens simples de teclado/mouse.
-// ============================================================
-
 #pragma once
-
 #include "platform/Window.hpp"
 
 namespace platform {
 
-class Input {
-public:
-    // Checa se uma tecla está pressionada agora (códigos GLFW).
-    static bool isKeyPressed(const Window& window, int glfwKey);
-};
+    struct MouseState {
+        double x = 0.0;
+        double y = 0.0;
+        double deltaX = 0.0;       
+        double deltaY = 0.0;
+        double scrollDelta = 0.0;   
+        bool leftPressed = false;
+        bool rightPressed = false;
+        bool middlePressed = false;
+        bool overUI = false;
+    };
 
-} // namespace platform
+    class Input {
+    public:
+        static bool isKeyPressed(const Window& window, int glfwKey);
+        static MouseState& mouse();
+        static void resetFrameDeltas();
+    };
+
+}
