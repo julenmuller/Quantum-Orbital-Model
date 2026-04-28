@@ -5,7 +5,6 @@
 #include "platform/Input.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <fmt/format.h>
 #include <imgui.h>
 #include <iostream>
 #include <set>
@@ -13,26 +12,19 @@
 namespace app {
 
     namespace {
-        glm::vec3 colorForOrbital(int n, int l) {
 
+        glm::vec3 colorForOrbital(int n, int l) {
             glm::vec3 base;
             switch (l) {
             case 0: base = glm::vec3(0.40f, 0.85f, 1.00f); break;
-            case 1: base = glm::vec3(1.00f, 0.50f, 0.85f); break;  
-            case 2: base = glm::vec3(1.00f, 0.85f, 0.40f); break;  
-            case 3: base = glm::vec3(0.55f, 1.00f, 0.55f); break;  
+            case 1: base = glm::vec3(1.00f, 0.50f, 0.85f); break;
+            case 2: base = glm::vec3(1.00f, 0.85f, 0.40f); break;
+            case 3: base = glm::vec3(0.55f, 1.00f, 0.55f); break;
             default: base = glm::vec3(0.8f); break;
             }
-
-            if (n == 1) {
-                return base;
-            }
-            else if (n == 2) {
-                return base * 0.75f + glm::vec3(0.05f);
-            }
-            else if (n == 3) {
-                return base * 0.55f + glm::vec3(0.10f);
-            }
+            if (n == 1) return base;
+            if (n == 2) return base * 0.75f + glm::vec3(0.05f);
+            if (n == 3) return base * 0.55f + glm::vec3(0.10f);
             return base * 0.4f;
         }
 
@@ -48,9 +40,6 @@ namespace app {
     }
 
     int Application::initialize() {
-        std::cout << "[*] Iniciando..." << std::endl;
-        std::cout.flush();
-
         try {
             window_ = std::make_unique<platform::Window>(
                 config::WINDOW_WIDTH,
@@ -71,9 +60,9 @@ namespace app {
 
         if (!particleRenderer_.initialize(config::shadersDir())) return 4;
         if (!orbitRenderer_.initialize(config::shadersDir())) return 5;
-
         if (!particleRenderer3D_.initialize(config::shadersDir())) return 6;
         if (!sphereWireframe_.initialize(config::shadersDir())) return 7;
+        if (!axisGizmo_.initialize(config::shadersDir())) return 8;
 
         camera_.updateAspect(window_->aspectRatio());
         camera3D_.updateAspect(window_->aspectRatio());
@@ -84,6 +73,7 @@ namespace app {
         controlState_.needsRegeneration = true;
         regenerateOrbitalsIfNeeded();
 
+        lastTime_ = glfwGetTime();
         return 0;
     }
 
@@ -100,9 +90,6 @@ namespace app {
 
         currentElement_ = elementDb_.get(controlState_.selectedSymbol);
         if (!currentElement_) return;
-
-        std::cout << "  [regen] " << currentElement_->name() << "..." << std::endl;
-        std::cout.flush();
 
         currentOrbitals_ = currentElement_->createOrbitals();
         assignColorsToOrbitals();
@@ -123,15 +110,6 @@ namespace app {
                 samplingRadius);
         }
 
-        int total2D = 0, total3D = 0;
-        for (const auto& orb : currentOrbitals_) {
-            total2D += static_cast<int>(orb->points().size());
-            total3D += static_cast<int>(orb->points3D().size());
-        }
-        std::cout << "  [regen] Pontos: 2D=" << total2D
-            << ", 3D=" << total3D << std::endl;
-        std::cout.flush();
-
         particleRenderer_.uploadOrbitals(currentOrbitals_);
         particleRenderer3D_.uploadOrbitals(currentOrbitals_);
 
@@ -151,6 +129,21 @@ namespace app {
         camera3D_.setDistance(static_cast<float>(samplingRadius * 1.5));
     }
 
+    void Application::resetCamera3D() {
+        camera3D_.setYaw(0.0f);
+        camera3D_.setPitch(0.3f);
+        int maxN = 1;
+        if (currentElement_) {
+            for (const auto& shell : currentElement_->configuration()) {
+                maxN = std::max(maxN, shell.n);
+            }
+        }
+        const float dist = static_cast<float>(
+            2.0 * physics::BohrModel::shellRadius(maxN,
+                currentElement_ ? currentElement_->atomicNumber() : 1) + 10.0);
+        camera3D_.setDistance(std::max(dist, 10.0f));
+    }
+
     void Application::update3DCamera() {
         auto& mouse = platform::Input::mouse();
         if (uiManager_->wantsCaptureMouse()) return;
@@ -166,22 +159,61 @@ namespace app {
         }
     }
 
-    void Application::update() {
-        if (platform::Input::isKeyPressed(*window_, GLFW_KEY_ESCAPE)) {
-            window_->requestClose();
+    void Application::handleKeyboardShortcuts() {
+        const bool tabNow = platform::Input::isKeyPressed(*window_, GLFW_KEY_TAB);
+        if (tabNow && !prevTabKey_) {
+            controlState_.viewMode = (controlState_.viewMode == ViewMode::View2D)
+                ? ViewMode::View3D
+                : ViewMode::View2D;
         }
+        prevTabKey_ = tabNow;
 
+        const bool spaceNow = platform::Input::isKeyPressed(*window_, GLFW_KEY_SPACE);
+        if (spaceNow && !prevSpaceKey_) {
+            controlState_.needsRegeneration = true;
+        }
+        prevSpaceKey_ = spaceNow;
+
+        const bool rNow = platform::Input::isKeyPressed(*window_, GLFW_KEY_R);
+        if (rNow && !prevRKey_ && controlState_.viewMode == ViewMode::View3D) {
+            resetCamera3D();
+        }
+        prevRKey_ = rNow;
+
+        if (platform::Input::isKeyPressed(*window_, GLFW_KEY_ESCAPE)) {
+            if (showSplash_) {
+                showSplash_ = false;
+            }
+            else {
+                window_->requestClose();
+            }
+        }
+    }
+
+    void Application::update() {
+        handleKeyboardShortcuts();
         regenerateOrbitalsIfNeeded();
 
         camera_.setZoom(controlState_.zoom);
         camera_.updateAspect(window_->aspectRatio());
 
         camera3D_.updateAspect(window_->aspectRatio());
-        if (controlState_.viewMode == ViewMode::View3D) {
+        if (controlState_.viewMode == ViewMode::View3D && !showSplash_) {
             update3DCamera();
         }
 
         controlState_.cameraDistance = camera3D_.distance();
+
+        const double now = glfwGetTime();
+        const float dt = static_cast<float>(now - lastTime_);
+        lastTime_ = now;
+        fpsAccumulator_ += dt;
+        fpsFrames_++;
+        if (fpsAccumulator_ >= 0.5f) {
+            fps_ = fpsFrames_ / fpsAccumulator_;
+            fpsAccumulator_ = 0.0f;
+            fpsFrames_ = 0;
+        }
     }
 
     void Application::render2D() {
@@ -200,10 +232,100 @@ namespace app {
             sphereWireframe_.render(camera3D_);
         }
         particleRenderer3D_.render(camera3D_, controlState_.pointSize);
+
+        axisGizmo_.render(camera3D_, window_->width(), window_->height());
+    }
+
+    void Application::renderSplashScreen() {
+        if (!showSplash_) return;
+
+        ImGui::SetNextWindowPos(
+            ImVec2(window_->width() / 2.0f - 280, window_->height() / 2.0f - 180),
+            ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(560, 360), ImGuiCond_Always);
+        ImGui::Begin("Quantum Orbital Model", nullptr,
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoCollapse);
+
+        ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.4f, 1.0f),
+            "Visualizador 2D/3D de Orbitais Atomicos");
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::TextWrapped("Este programa visualiza a densidade de probabilidade "
+            "|psi|^2 dos orbitais atomicos calculada pela equacao "
+            "de Schrodinger (orbitais hidrogenoides).");
+        ImGui::Spacing();
+
+        ImGui::TextColored(ImVec4(0.8f, 0.85f, 1.0f, 1.0f), "COMO USAR");
+        ImGui::Separator();
+        ImGui::BulletText("Use as abas '2D' e '3D' para alternar visualizacao");
+        ImGui::BulletText("Selecione um elemento (H, He, C, N, O)");
+        ImGui::BulletText("No modo 3D: botao DIREITO + arrastar para girar");
+        ImGui::BulletText("No modo 3D: scroll do mouse para zoom");
+
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(0.8f, 0.85f, 1.0f, 1.0f), "ATALHOS DE TECLADO");
+        ImGui::Separator();
+        ImGui::BulletText("Tab     - alterna 2D/3D");
+        ImGui::BulletText("Space   - regenera nuvem");
+        ImGui::BulletText("R       - reseta camera 3D");
+        ImGui::BulletText("ESC     - fechar (ou continuar)");
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+        if (ImGui::Button("Comecar", ImVec2(-1, 36))) {
+            showSplash_ = false;
+        }
+
+        ImGui::End();
+    }
+
+    void Application::renderUI() {
+        uiManager_->beginFrame();
+
+        if (!showSplash_) {
+            controlPanel_.render(controlState_, elementDb_);
+            infoPanel_.render(currentElement_, currentOrbitals_);
+
+            if (controlState_.viewMode == ViewMode::View3D) {
+                ImGui::SetNextWindowPos(
+                    ImVec2(window_->width() - 230.0f, 10.0f),
+                    ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2(220, 165), ImGuiCond_FirstUseEver);
+                ImGui::Begin("Camera 3D");
+
+                const float yawDeg = camera3D_.yaw() * 57.29578f;
+                const float pitchDeg = camera3D_.pitch() * 57.29578f;
+                ImGui::Text("Yaw:   %.1f deg", yawDeg);
+                ImGui::Text("Pitch: %.1f deg", pitchDeg);
+                ImGui::Text("Dist:  %.2f bohr", camera3D_.distance());
+                ImGui::Separator();
+                if (ImGui::Button("Reset (R)", ImVec2(-1, 0))) {
+                    resetCamera3D();
+                }
+                ImGui::TextWrapped("RMB+arrastar: girar | Scroll: zoom");
+
+                ImGui::End();
+            }
+
+            ImGui::SetNextWindowPos(ImVec2(10.0f, window_->height() - 30.0f),
+                ImGuiCond_Always);
+            ImGui::Begin("##FpsOverlay", nullptr,
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground |
+                ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
+            ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.6f, 0.8f), "%.0f FPS", fps_);
+            ImGui::End();
+        }
+
+        renderSplashScreen();
+
+        uiManager_->endFrame();
     }
 
     void Application::render() {
-        glClearColor(0.02f, 0.02f, 0.06f, 1.0f);
+        glClearColor(0.015f, 0.018f, 0.04f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         if (controlState_.viewMode == ViewMode::View2D) {
@@ -214,32 +336,7 @@ namespace app {
         }
 
         glDisable(GL_DEPTH_TEST);
-
-        uiManager_->beginFrame();
-        controlPanel_.render(controlState_, elementDb_);
-        infoPanel_.render(currentElement_, currentOrbitals_);
-
-        if (controlState_.viewMode == ViewMode::View3D) {
-            ImGui::SetNextWindowPos(
-                ImVec2(window_->width() - 230.0f, 10.0f),
-                ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(220, 130), ImGuiCond_FirstUseEver);
-            ImGui::Begin("Camera 3D");
-
-            const float yawDeg = camera3D_.yaw() * 57.29578f;
-            const float pitchDeg = camera3D_.pitch() * 57.29578f;
-
-            ImGui::Text("Yaw:   %.1f deg", yawDeg);
-            ImGui::Text("Pitch: %.1f deg", pitchDeg);
-            ImGui::Text("Dist:  %.2f bohr", camera3D_.distance());
-            ImGui::Separator();
-            ImGui::TextWrapped("RMB+arrastar: girar");
-            ImGui::TextWrapped("Scroll: zoom");
-
-            ImGui::End();
-        }
-
-        uiManager_->endFrame();
+        renderUI();
     }
 
     void Application::run() {

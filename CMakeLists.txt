@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(QuantumOrbitalModel
-    VERSION 0.4.0
-    DESCRIPTION "Visualizador 2D/3D de orbitais quânticos"
+    VERSION 1.0.0
+    DESCRIPTION "Visualizador 2D/3D de orbitais atomicos"
     LANGUAGES CXX
 )
 
@@ -36,17 +36,16 @@ set(PROJECT_SOURCES
     src/physics/ElementDatabase.cpp
     src/physics/BohrModel.cpp
 
-    # Rendering 2D
     src/rendering/Shader.cpp
     src/rendering/VertexBuffer.cpp
     src/rendering/Camera2D.cpp
     src/rendering/ParticleRenderer.cpp
     src/rendering/OrbitRenderer.cpp
 
-    # Rendering 3D
     src/rendering/Camera3D.cpp
     src/rendering/ParticleRenderer3D.cpp
     src/rendering/SphereWireframe.cpp
+    src/rendering/AxisGizmo.cpp
 
     src/ui/UIManager.cpp
     src/ui/ControlPanel.cpp
