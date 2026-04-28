@@ -132,7 +132,19 @@ namespace app {
             orb->generatePoints(sampler_,
                 controlState_.particlesPerOrbital,
                 samplingRadius);
+            orb->generatePoints3D(sampler_,
+                controlState_.particlesPerOrbital,
+                samplingRadius);
         }
+
+        int total2D = 0, total3D = 0;
+        for (const auto& orb : currentOrbitals_) {
+            total2D += static_cast<int>(orb->points().size());
+            total3D += static_cast<int>(orb->points3D().size());
+        }
+        std::cout << "  [regen] Pontos gerados: 2D=" << total2D
+            << ", 3D=" << total3D << std::endl;
+        std::cout.flush();
 
         particleRenderer_.uploadOrbitals(currentOrbitals_);
 
@@ -163,9 +175,6 @@ namespace app {
     void Application::render() {
         glClearColor(0.02f, 0.02f, 0.06f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-
-        // Renderiza viewport segundo o modo atual
-
         if (controlState_.viewMode == ViewMode::View2D) {
             // Modo 2D: nuvem + aneis de Bohr planos
             if (controlState_.showShells) {
@@ -174,23 +183,27 @@ namespace app {
             particleRenderer_.render(camera_, controlState_.pointSize);
         }
         else {
-            // Modo 3D
         }
 
         uiManager_->beginFrame();
         controlPanel_.render(controlState_, elementDb_);
         infoPanel_.render(currentElement_, currentOrbitals_);
-
         if (controlState_.viewMode == ViewMode::View3D) {
             ImGui::SetNextWindowPos(
-                ImVec2(window_->width() / 2.0f - 200, window_->height() / 2.0f - 50),
+                ImVec2(window_->width() / 2.0f - 220, window_->height() / 2.0f - 60),
                 ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(400, 100), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(440, 120), ImGuiCond_Always);
             ImGui::Begin("3D em construcao", nullptr,
                 ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                 ImGuiWindowFlags_NoCollapse);
-            ImGui::TextWrapped("Modo 3D em desenvolvimento.");
-            ImGui::TextWrapped("Volte para a aba 2D para ver os orbitais.");
+            ImGui::TextWrapped("Modo 3D - Fase 2 (sampling volumetrico)");
+            int total3D = 0;
+            for (const auto& orb : currentOrbitals_) {
+                total3D += static_cast<int>(orb->points3D().size());
+            }
+            ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f),
+                "Pontos 3D amostrados: %d", total3D);
+            ImGui::TextWrapped("Renderer 3D vem na proxima fase.");
             ImGui::End();
         }
 
