@@ -1,6 +1,5 @@
 // ============================================================
-// Window.cpp - VERSÃO COM FALLBACK PARA DRIVERS ANTIGOS
-// ============================================================
+// Window.cpp - VERSÃO COM FALLBACK
 
 #include "platform/Window.hpp"
 
