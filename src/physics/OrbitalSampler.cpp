@@ -1,6 +1,5 @@
 #include "physics/OrbitalSampler.hpp"
 #include "physics/Wavefunction.hpp"
-
 #include <algorithm>
 #include <cmath>
 
@@ -10,8 +9,6 @@ namespace physics {
         : rng_(std::random_device{}())
     {
     }
-
-    // 2D
 
     double OrbitalSampler::estimateMaxProbability(const QuantumNumbers& qn,
         int Z,
@@ -67,11 +64,7 @@ namespace physics {
         return points;
     }
 
-
-    // 3D
-
     namespace {
-        // Calcula |ψ|² em um ponto 3D (x, y, z)
         double probabilityDensity3D(const QuantumNumbers& qn,
             double x, double y, double z, int Z) {
             const double r = std::sqrt(x * x + y * y + z * z);
@@ -86,9 +79,8 @@ namespace physics {
     double OrbitalSampler::estimateMaxProbability3D(const QuantumNumbers& qn,
         int Z,
         double samplingRadius) {
-        // Grid 3D coarse (40^3 = 64000 pontos pra encontrar o máximo)
         double maxProb = 0.0;
-        constexpr int GRID_STEPS = 40;
+        constexpr int GRID_STEPS = 24;
         const double step = 2.0 * samplingRadius / GRID_STEPS;
 
         for (int i = 0; i <= GRID_STEPS; ++i) {
@@ -102,7 +94,18 @@ namespace physics {
                 }
             }
         }
-        return maxProb * 1.05;
+
+        std::mt19937 localRng(42);
+        std::uniform_real_distribution<double> uni(-samplingRadius, samplingRadius);
+        for (int t = 0; t < 1000; ++t) {
+            const double x = uni(localRng);
+            const double y = uni(localRng);
+            const double z = uni(localRng);
+            const double p = probabilityDensity3D(qn, x, y, z, Z);
+            if (p > maxProb) maxProb = p;
+        }
+
+        return maxProb * 1.10;
     }
 
     std::vector<OrbitalPoint3D> OrbitalSampler::sample3D(const QuantumNumbers& qn,
@@ -119,7 +122,7 @@ namespace physics {
 
         std::uniform_real_distribution<double> uni(-samplingRadius, samplingRadius);
         std::uniform_real_distribution<double> uprob(0.0, maxProb);
-        const int maxAttempts = numPoints * 5000;
+        const int maxAttempts = numPoints * 2000;
         int attempts = 0;
 
         while (static_cast<int>(points.size()) < numPoints && attempts < maxAttempts) {
